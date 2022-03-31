@@ -1,3 +1,4 @@
+use "net"
 use "debug"
 use "collections"
 use "inspect"
@@ -13,7 +14,7 @@ actor Main
     let filter: String = "(dNSHostName=*)"
 
     try
-      let ldap: Ldap = Ldap(url)?
+      let ldap: Ldap = Ldap(url, TCPAuth(env.root))?
       try
         ldap.bind("bind-username", "bind-password")?
       else

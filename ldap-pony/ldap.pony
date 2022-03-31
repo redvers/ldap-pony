@@ -1,3 +1,4 @@
+use "net"
 use "collections"
 use "lib:ldap"
 use "lib:lber"
@@ -11,8 +12,10 @@ class Ldap
   var errstr: String ref = recover String end
   var errno: I32 = I32(0)
   var errmsg: String ref = recover String end
+  var auth: TCPAuth
 
-  new create(url: String) ? =>
+  new create(url: String, auth': TCPAuth) ? =>
+    auth = auth'
     rc = @ldap_initialize(addressof ptr, url.cstring())
     let ldap_opt_protocol_version: I32 = 0x0011
     let ldap_opt_debug_level: I32 = 0x5001
