@@ -2410,7 +2410,7 @@ use @ldap_count_values_len[I32](vals: Pointer[NullablePointer[_BervalOUT]] tag)
   Arguments:
     [PointerType size=64]->[PointerType size=64]->[Struct size=128,fid: f7]
 */
-use @ldap_value_free_len[None](vals: Pointer[NullablePointer[_Berval]] tag)
+use @ldap_value_free_len[None](vals: Pointer[NullablePointer[_BervalOUT]] tag)
 
 
 
@@ -2557,6 +2557,7 @@ use @ldap_search_ext_s[I32](ld: NullablePointer[_Ldap] tag, base: Pointer[U8] ta
 */
 use @ldap_unbind_ext[I32](ld: NullablePointer[_Ldap] tag, serverctrls: Pointer[NullablePointer[_Ldapcontrol]] tag, clientctrls: Pointer[NullablePointer[_Ldapcontrol]] tag)
 
+use @ldap_unbind[I32](ld: NullablePointer[_Ldap] tag)
 
 
 /*

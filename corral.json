@@ -1,10 +1,6 @@
 {
   "packages": [ "ldap-pony" ],
   "deps": [
-    {
-      "locator": "github.com/jemc/pony-inspect.git",
-      "version": "master"
-    }
   ],
   "info": {
     "description": "LDAP Client functionality for Ponylang",

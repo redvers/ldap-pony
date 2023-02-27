@@ -544,33 +544,33 @@ primitive LdapC
 //    @ber_write(ber, buf.cstring(), len, zero)
 //
 //
-///*
-//  Source: /usr/include/lber.h:454
-//  Original Name: ber_free/usr/include/lber.h:454
-//
-//  Return Value: [FundamentalType(void) size=0]
-//
-//  Arguments:
-//    [PointerType size=64]->[Struct size=,fid: f7]
-//    [FundamentalType(int) size=32]
-//*/
-//  fun ber_free(ber: NullablePointer[_Berelement] tag, freebuf: I32): None =>
-//    @ber_free(ber, freebuf)
-//
-//
-///*
-//  Source: /usr/include/lber.h:459
-//  Original Name: ber_free_buf/usr/include/lber.h:459
-//
-//  Return Value: [FundamentalType(void) size=0]
-//
-//  Arguments:
-//    [PointerType size=64]->[Struct size=,fid: f7]
-//*/
-//  fun ber_free_buf(ber: NullablePointer[_Berelement] tag): None =>
-//    @ber_free_buf(ber)
-//
-//
+/*
+  Source: /usr/include/lber.h:454
+  Original Name: ber_free/usr/include/lber.h:454
+
+  Return Value: [FundamentalType(void) size=0]
+
+  Arguments:
+    [PointerType size=64]->[Struct size=,fid: f7]
+    [FundamentalType(int) size=32]
+*/
+  fun ber_free(ber: NullablePointer[_Berelement] tag, freebuf: I32): None =>
+    @ber_free(ber, freebuf)
+
+
+/*
+  Source: /usr/include/lber.h:459
+  Original Name: ber_free_buf/usr/include/lber.h:459
+
+  Return Value: [FundamentalType(void) size=0]
+
+  Arguments:
+    [PointerType size=64]->[Struct size=,fid: f7]
+*/
+  fun ber_free_buf(ber: NullablePointer[_Berelement] tag): None =>
+    @ber_free_buf(ber)
+
+
 ///*
 //  Source: /usr/include/lber.h:462
 //  Original Name: ber_flush2/usr/include/lber.h:462
@@ -2477,19 +2477,19 @@ primitive LdapC
 //    @ldap_msgid(lm)
 //
 //
-///*
-//  Source: /usr/include/ldap.h:1856
-//  Original Name: ldap_msgfree/usr/include/ldap.h:1856
-//
-//  Return Value: [FundamentalType(int) size=32]
-//
-//  Arguments:
-//    [PointerType size=64]->[Struct size=,fid: f8]
-//*/
-//  fun ldap_msgfree(lm: NullablePointer[_Ldapmsg] tag): I32 =>
-//    @ldap_msgfree(lm)
-//
-//
+/*
+  Source: /usr/include/ldap.h:1856
+  Original Name: ldap_msgfree/usr/include/ldap.h:1856
+
+  Return Value: [FundamentalType(int) size=32]
+
+  Arguments:
+    [PointerType size=64]->[Struct size=,fid: f8]
+*/
+  fun ldap_msgfree(lm: NullablePointer[_Ldapmsg] tag): I32 =>
+    @ldap_msgfree(lm)
+
+
 ///*
 //  Source: /usr/include/ldap.h:1860
 //  Original Name: ldap_msgdelete/usr/include/ldap.h:1860
