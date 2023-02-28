@@ -6,28 +6,22 @@ use "net"
 
 use @printf[I32](fmt: Pointer[U8] tag, ...)
 
+type LDAPResultSingleCallback is {(Bool, String, String, Map[String, Array[String val] val] val): None} val
+
 actor LDAPConnection
   var ptr: NullablePointer[_Ldap] = NullablePointer[_Ldap].none()
   let auth: TCPConnectAuth
-  let notify: LDAPConnectionNotify
 	var url: String
-	var username: String
-  var password: String
-  var errstr: String ref = recover ref String end
-  var errmsg: String ref = recover ref String end
+  var errstr: String val = recover val String end
+  var errmsg: String val = recover val String end
+  var initialized: Bool = false
 
   new create(
 		auth': TCPConnectAuth,
-		notify': LDAPConnectionNotify iso,
-		url': String,
-		username': String,
-		password': String)
+		url': String)
 	=>
     auth = auth'
     url = url'
-    username = username'
-    password = password'
-    notify = consume notify'
 
     var rc: I32 = I32(0)
     rc = @ldap_initialize(addressof ptr, url.cstring())
@@ -40,14 +34,16 @@ actor LDAPConnection
     @ldap_set_option(ptr, ldap_opt_protocol_version, addressof version)
     @ldap_set_option(ptr, ldap_opt_referrals, ldap_opt_off)
     errstr = LdapC.ldap_err2string(rc)
-    if (rc != 0) then
-      notify.init_failed(this)
+    if (rc == 0) then
+      initialized = true
+    end
+
+  be bind(user: String, p: String, cb: {(Bool, String, String): None} val) =>
+    if (initialized == false) then
+      cb(false, "Failed to initialize", errstr)
       return
     end
-    notify.initialized(this)
-		bind(username, password)
 
-  be bind(user: String, p: String) =>
     let mechanism: Pointer[U8] = Pointer[U8]
 		var msgid: I32 = I32(0)
 		var errno: I32 = I32(0)
@@ -67,14 +63,14 @@ actor LDAPConnection
 		if (rc != LDAPResponse.bind()) then
       errstr = LdapC.ldap_err2string(rc)
       errmsg = "Unexpected rc = ".clone() + rc.string()
-      notify.connect_failed(this)
+      cb(false, errmsg, errstr)
       return
     end
 
     if (result.is_none()) then
       errstr = LdapC.ldap_err2string(rc)
       errmsg = "result is a null ptr".clone()
-      notify.connect_failed(this)
+      cb(false, errmsg, errstr)
       return
     end
 
@@ -87,43 +83,45 @@ actor LDAPConnection
     @ldap_msgfree(result)
 
     errstr = LdapC.ldap_err2string(rc)
-    errmsg = String.from_cstring(errmsgp)
+    errmsg = String.from_cstring(errmsgp).clone()
 
     if (rc != 0) then
-      notify.bind_failed(this)
+      cb(false, errmsg, errstr)
 			return
     end
 
     if (errno != 0) then
-      notify.bind_failed(this)
+      cb(false, errmsg, errstr)
       return
     end
 
-		notify.authenticated(this)
+		cb(true, "", "")
 
-  be besearch(basedn: String, filter: String, scope: I32, attribs: Array[String] val) =>
+
+  be search(basedn: String, filter: String, scope: I32, attribs: Array[String] val,
+            cb: LDAPResultSingleCallback) =>
     try
-      search(basedn, filter, scope, attribs)?
+      _search(basedn, filter, scope, attribs, cb)?
     else
-      Debug.out("besearch failed")
-      Debug.out(errstr)
+      cb(false, errmsg, errstr, Map[String, Array[String val] val])
     end
 
 
-  fun ref search(basedn: String, filter: String, scope: I32, attribs: Array[String] val) ? =>
+  fun ref _search(basedn: String, filter: String, scope: I32, attribs: Array[String] val, cb: LDAPResultSingleCallback) ? =>
     if (false) then error end
-    var cookieout: NullablePointer[_Berval] = search_paging(basedn, filter, scope, NullablePointer[_Berval].none(), attribs)?
+
+    var cookieout: NullablePointer[_Berval] = search_paging(basedn, filter, scope, NullablePointer[_Berval].none(), attribs, cb)?
     while (true) do
       if (cookieout.is_none()) then
         break
       end
       Debug.out("search out")
-      cookieout = search_paging(basedn, filter, scope, cookieout, attribs)?
+      cookieout = search_paging(basedn, filter, scope, cookieout, attribs, cb)?
     end
-    notify.complete(this)
+//    notify.complete(this)
 
 
-  fun ref search_paging(basedn: String, filter: String, scope: I32, cookiein': NullablePointer[_Berval], attribs: Array[String] val): NullablePointer[_Berval] ? =>
+  fun ref search_paging(basedn: String, filter: String, scope: I32, cookiein': NullablePointer[_Berval], attribs: Array[String] val, cb: LDAPResultSingleCallback): NullablePointer[_Berval] ? =>
     if (false) then error end
 		var msgid: I32 = I32(0)
 
@@ -145,12 +143,12 @@ actor LDAPConnection
     errstr = LdapC.ldap_err2string(rc)
     if (rc != 0) then
       Debug.out("ldap_err2string != 0")
-      notify.no_support_paging(this)
+      cb(false, "Server does not support paging", "", Map[String, Array[String val] val]) //no_support_paging(this)
       error
     end
     if (t.is_none()) then
       Debug.out("t.is_none()")
-      notify.no_support_paging(this)
+      cb(false, "Server does not support paging", "", Map[String, Array[String val] val]) //no_support_paging(this)
       error
     end
 
@@ -167,7 +165,7 @@ actor LDAPConnection
     if (rc != 0) then
       Debug.out("ldap_search_ext rc != 0")
       errstr = LdapC.ldap_err2string(rc)
-      notify.search_failed(this)
+      cb(false, errmsg, errstr, Map[String, Array[String val] val]) //no_support_paging(this)
       error
     end
 
@@ -181,7 +179,7 @@ actor LDAPConnection
       Debug.out("rsult.is_none()")
       errstr = LdapC.ldap_err2string(rc)
       errmsg = "ldap_result call failed".clone()
-      notify.search_failed(this)
+      cb(false, errmsg, errstr, Map[String, Array[String val] val]) //no_support_paging(this)
       error
     end
     var matched: Pointer[U8] = Pointer[U8]
@@ -194,11 +192,11 @@ actor LDAPConnection
         addressof refferp, addressof taap, 0)
 
     errstr = LdapC.ldap_err2string(rc)
-    errmsg = String.from_cstring(errmsgp)
+    errmsg = String.from_cstring(errmsgp).clone()
 
     if (rc != 0) then
       Debug.out("Yikes agains")
-      notify.search_failed(this)
+      cb(false, errmsg, errstr, Map[String, Array[String val] val]) //no_support_paging(this)
       error
     end
 
@@ -207,20 +205,20 @@ actor LDAPConnection
     var cookie: _Berval = _Berval
     var cookiep: NullablePointer[_Berval] = NullablePointer[_Berval](cookie)
 
-//    Debug.out("Number of pages: " + taaparray.size().string())
+
+    Debug.out("Number of pages: " + taaparray.size().string())
     try
       rc = @ldap_parse_pageresponse_control(ptr, taaparray.apply(0)?, addressof count, cookiep)
       @ldap_control_free(taaparray.apply(0)?)
     else
-      Debug.out("ldap_parse_pageresponse_control is faili'")
-      Debug.out(errstr)
+      cb(false, "ldap_parse_pageresponse_control is has failed", errstr, Map[String, Array[String val] val]) //no_support_paging(this)
       error
     end
 
     var single_result: NullablePointer[_Ldapmsg] = @ldap_first_entry(ptr, result)
     while (single_result.is_none() != true) do
       (let resultmap: Map[String, Array[String val] val] val, let dn: String ref) = process_result(single_result)
-      notify.record(this, resultmap)
+      cb(true, "", "", resultmap)
       single_result = @ldap_next_entry(ptr, single_result)
     end
     @ldap_msgfree(single_result)
@@ -291,3 +289,4 @@ actor LDAPConnection
 //      @printf("ldap_unbind() is called\n".cstring())
       @ldap_unbind(ptr)
     end
+
